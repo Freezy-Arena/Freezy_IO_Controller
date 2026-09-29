@@ -16,6 +16,9 @@ private:
     void sample();
     portMUX_TYPE _mux = portMUX_INITIALIZER_UNLOCKED;
     alliance::StopBank<256> _bank;
+    alliance::PressDebounce _debounce[alliance::InputCount];
+    bool _rawPressed[alliance::InputCount]{};
+    uint32_t _pressDebounceMs = alliance::DefaultPressDebounceMs;
     alliance::StopBank<256>::Candidate _flight;
     bool _blue = false, _inFlight = false, _connected = false;
     bool _sampleSeen = false, _heartbeatOn = false;

@@ -2,6 +2,55 @@
 #include "../src/alliance/alliance_policy.h"
 using alliance::StopBank;
 
+constexpr bool pressDebounceTiming() {
+    alliance::PressDebounce input;
+    if (!input.sample(true, 0, 20)) return false;
+    if (!input.sample(false, 10, 20)) return false;
+    if (!input.sample(false, 29, 20)) return false;
+    if (input.sample(false, 30, 20)) return false;
+    if (input.sample(false, 31, 20)) return false;
+    if (!input.sample(true, 32, 20)) return false; // Immediate release.
+    if (!input.sample(false, 33, 20)) return false;
+    if (!input.sample(true, 40, 20)) return false; // Bounce cancels the timer.
+    if (!input.sample(false, 41, 20)) return false;
+    if (!input.sample(false, 60, 20)) return false;
+    return !input.sample(false, 61, 20);
+}
+
+constexpr bool debounceBootWrapAndDisabled() {
+    alliance::PressDebounce heldAtBoot, disabled, other;
+    if (disabled.sample(false, 0, 0)) return false;
+    if (!disabled.sample(true, 1, 0)) return false;
+    if (!heldAtBoot.sample(false, 0xfffffff0u, 20)) return false;
+    if (!heldAtBoot.sample(false, 3, 20)) return false;
+    if (heldAtBoot.sample(false, 4, 20)) return false;
+    if (heldAtBoot.sample(false, 0xfffffff1u, 20)) return false; // Qualified press stays asserted across a full wrap.
+    return other.sample(false, 4, 20); // Independent timer per input.
+}
+
+constexpr bool debounceQueuesOnlyQualifiedPresses() {
+    alliance::PressDebounce input;
+    StopBank<8> bank;
+    bank.observe(0, input.sample(true, 0, 20), 0);
+    bank.observe(0, input.sample(false, 1, 20), 1);
+    bank.observe(0, input.sample(true, 19, 20), 19);
+    if (bank.inputs[0].count != 1) return false; // Short pulse adds no events.
+    bank.observe(0, input.sample(false, 20, 20), 20);
+    bank.observe(0, input.sample(false, 40, 20), 40);
+    bank.observe(0, input.sample(true, 41, 20), 41);
+    fms::Transition event;
+    if (bank.inputs[0].count != 3) return false;
+    if (!bank.inputs[0].peek(event) || !event.state) return false;
+    bank.inputs[0].acknowledge(event.sequence);
+    if (!bank.inputs[0].peek(event) || event.state || event.sampledAt != 40) return false;
+    bank.inputs[0].acknowledge(event.sequence);
+    return bank.inputs[0].peek(event) && event.state && event.sampledAt == 41;
+}
+
+static_assert(pressDebounceTiming(), "Press debounce must require continuous assertion and release immediately");
+static_assert(debounceBootWrapAndDisabled(), "Debounce must handle boot, rollover, zero, and independent inputs");
+static_assert(debounceQueuesOnlyQualifiedPresses(), "Only qualified press/release events should enter history");
+
 constexpr bool mappings() {
     const uint8_t red[] = {INPUT_RED_1_ESTOP, INPUT_RED_1_ASTOP, INPUT_RED_2_ESTOP,
                           INPUT_RED_2_ASTOP, INPUT_RED_3_ESTOP, INPUT_RED_3_ASTOP};

@@ -2,6 +2,31 @@
 #include "../fms_table/stop_policy.h"
 
 namespace alliance {
+constexpr uint32_t DefaultPressDebounceMs = 20;
+constexpr uint32_t MaxPressDebounceMs = 1000;
+
+// Wire state false means pressed. Releases cancel pending presses immediately.
+class PressDebounce {
+public:
+    constexpr bool sample(bool released, uint32_t now, uint32_t debounceMs) {
+        if (released) {
+            pending = false;
+            qualified = false;
+            return true;
+        }
+        if (!pending) {
+            pending = true;
+            pressedAt = now;
+        }
+        if (uint32_t(now - pressedAt) >= debounceMs) qualified = true;
+        return !qualified;
+    }
+private:
+    bool pending = false;
+    bool qualified = false;
+    uint32_t pressedAt = 0;
+};
+
 constexpr uint8_t InputCount = 6;
 // Legacy Freezy Estops wiring: station 1 E/A, station 2 E/A, station 3 E/A.
 constexpr uint8_t Pins[InputCount] = {1, 2, 3, 15, 18, 16};

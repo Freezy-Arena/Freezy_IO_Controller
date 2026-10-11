@@ -1,12 +1,17 @@
-# ESP32-S3 FRC Arena Hub Controller
+# Freezy IO Controller
 
 > [!WARNING]
-> **This is a test branch for ESP32 arena controllers.** `FMS_TABLE` requires the Freezy arena WebSocket input/coil and HTTP start extensions documented below. Do not assume upstream [Team 254's Cheesy Arena](https://github.com/Team254/cheesy-arena) supports those endpoints or the `setRegisters`/`setInput` extensions.
+> **This is a test branch of Freezy IO Controller for ESP32 arena devices.** `FMS_TABLE` requires the Freezy Arena WebSocket input/coil and HTTP start extensions documented below. Do not assume upstream [Team 254's Cheesy Arena](https://github.com/Team254/cheesy-arena) supports those endpoints or the `setRegisters`/`setInput` extensions.
 
-Firmware for an ESP32-S3 that connects physical FRC hub hardware to a Cheesy Arena server. It reads four hardware counters, reports PLC registers and inputs, responds to PLC coils, controls relays, and drives WS2812B LEDs from coils, DMX, or arena WebSocket modes.
+**Freezy IO Controller** replaces the separate **Freezy EStops application** with a single ESP32-S3 firmware application for Freezy Arena hub, FMS table, and alliance stop controllers. Use the built-in web interface to assign each device its role and responsibilities, configure its network and arena connection, and save its settings. The same firmware supports all five roles; changing a device's role does not require flashing a different application.
+
+Depending on the selected role, the controller reads hub counters, reports PLC registers and inputs, handles field or alliance stop buttons, requests match starts, controls relays, and drives LEDs. Hardware wiring and active inputs/outputs depend on the assigned role; see [Device roles](#device-roles) and the linked wiring guides.
 
 ## Highlights
 
+- Replaces Freezy EStops and combines hub, FMS table, and alliance stop responsibilities in one application
+- Assign each device's role through its web interface: Red Hub, Blue Hub, FMS Table, Red Alliance, or Blue Alliance
+- Migrates legacy REST API calls and polling to a persistent WebSocket connection for stop inputs and stack-light updates; match start still uses HTTP
 - Four overflow-safe ESP32 PCNT counter channels with 64-bit accumulation
 - Red Hub and Blue Hub roles with separate PLC mappings
 - FMS_TABLE role with dedicated stop sampling/delivery and legacy settings migration; see [protocol comparison and bench tests](docs/FMS_TABLE.md)
@@ -55,6 +60,16 @@ The main page configures:
 - Links to the WebSocket and LED settings pages
 
 Saving the main page restarts the controller.
+
+Choose the role that matches the device's wiring and job:
+
+| Role | Device responsibility |
+|---|---|
+| `redHub` | Red hub counters, sensor inputs, relays, and LEDs |
+| `blueHub` | Blue hub counters, sensor inputs, relays, and LEDs |
+| `FMS_TABLE` | Field E-stop, match-start button, and field stack lights |
+| `RED_ALLIANCE` | Red alliance station E-stop and A-stop inputs, plus status LEDs |
+| `BLUE_ALLIANCE` | Blue alliance station E-stop and A-stop inputs, plus status LEDs |
 
 ### Live input status
 
@@ -155,7 +170,7 @@ Role-specific registers, coils, inputs, counters, and relay pins are defined in 
 and GPIO 47 for its original stack-light layout, driven by WebSocket PLC coil changes. It does not initialize hub
 relays/counters or send hub telemetry. See [FMS_TABLE migration](docs/FMS_TABLE.md)
 for polarity, retained transitions, retries, overflow, settings, and bench tests.
-It requires the inspected Freezy arena WebSocket and HTTP extensions; upstream compatibility
+It requires the inspected Freezy Arena WebSocket and HTTP extensions; upstream compatibility
 must not be inferred from the hub LED support.
 
 `RED_ALLIANCE` and `BLUE_ALLIANCE` use GPIOs 1, 2, 3, 15, 18, and 16 for
@@ -164,6 +179,23 @@ blue writes channels 7–12. Both use the original GPIO 47 status LEDs and
 dedicated input sampling, with independent transition queues and acknowledged
 WebSocket delivery. See [alliance stop roles](docs/ALLIANCE_STOPS.md) for polarity,
 retry/fault behavior, settings migration, and outstanding hardware validation.
+
+## Migration from REST APIs to WebSockets
+
+Freezy IO Controller replaces many of the older Freezy EStops methods that used REST APIs with messages over the arena WebSocket connection. Stop inputs now use acknowledged WebSocket writes, and stack lights follow incoming PLC coil updates instead of repeatedly polling an HTTP endpoint.
+
+| Function | Current communication with Freezy Arena |
+|---|---|
+| Field and alliance stop inputs | WebSocket `setInput` with acknowledgment; replaces HTTP POST `/api/freezy/eStopState` |
+| FMS table stack lights | WebSocket `plcIoChange.Coils`; replaces HTTP GET `/api/freezy/field_stack_light` polling |
+| Hub counters and sensor inputs | WebSocket `setRegisters` and `setInput` |
+| PLC coil updates for relays and lights | WebSocket `plcIoChange` |
+| Arena LED animation modes | WebSocket `setLedMode` |
+| FMS table match-start request | Still HTTP POST `/api/freezy/startMatch` |
+
+The migration is not complete: match start still requires the Freezy Arena HTTP API, and an HTTP POST to `/login` remains available for session authentication when a non-stop role encounters a protected WebSocket endpoint. Stop roles use the public PLC WebSocket endpoint without this login fallback. HTTP and WebSocket connections share the saved arena host and port.
+
+The controller also serves its own web configuration pages and local `/api/inputs` status endpoint over HTTP. These are device-local interfaces, separate from the Freezy Arena REST APIs being replaced. See [FMS table protocol and migration details](docs/FMS_TABLE.md) for the arena endpoint requirements.
 
 ## WebSocket protocol
 
@@ -266,7 +298,7 @@ Review these files when the arena PLC mapping changes:
 
 ## Build, upload, and monitor
 
-This project uses [PlatformIO](https://platformio.org/).
+Freezy IO Controller uses [PlatformIO](https://platformio.org/).
 
 ```bash
 # Build

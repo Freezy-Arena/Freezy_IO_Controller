@@ -1,7 +1,9 @@
 #include "alliance_stops.h"
+#include "alliance_settings.h"
 
 void AllianceStops::begin(DeviceRole role) {
     _blue = role == ROLE_BLUE_ALLIANCE;
+    _pressDebounceMs = alliance::loadPressDebounceMs();
     for (uint8_t pin : alliance::Pins) pinMode(pin, INPUT);
     sample(); // Retain the boot snapshot even when Ethernet is unavailable.
     if (xTaskCreatePinnedToCore(sampleTask, "alliance-sample", 3072, this, 3, nullptr, 1) != pdPASS) {
@@ -32,7 +34,10 @@ void AllianceStops::sample() {
     _sampleSeen = true;
     _lastSampleUs = nowUs;
     _sampledAt = now;
-    for (uint8_t i = 0; i < alliance::InputCount; ++i) _bank.observe(i, states[i], now);
+    for (uint8_t i = 0; i < alliance::InputCount; ++i) {
+        _rawPressed[i] = !states[i];
+        _bank.observe(i, _debounce[i].sample(states[i], now, _pressDebounceMs), now);
+    }
     portEXIT_CRITICAL(&_mux);
 }
 
@@ -43,7 +48,7 @@ InputStatusSnapshot AllianceStops::inputStatus() {
     snapshot.sampledAt = _sampledAt;
     snapshot.fault = _bank.fault;
     snapshot.count = alliance::InputCount;
-    for (uint8_t i = 0; i < alliance::InputCount; ++i) snapshot.pressed[i] = !_bank.inputs[i].latest;
+    for (uint8_t i = 0; i < alliance::InputCount; ++i) snapshot.pressed[i] = _rawPressed[i];
     portEXIT_CRITICAL(&_mux);
     return snapshot;
 }

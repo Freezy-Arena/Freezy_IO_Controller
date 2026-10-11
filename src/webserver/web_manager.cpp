@@ -1,6 +1,7 @@
 #include "web_manager.h"
 #include "input_status_page.h"
 #include "../alliance/alliance_policy.h"
+#include "../alliance/alliance_settings.h"
 
 static String htmlEscape(const String& value) {
     String escaped;
@@ -173,10 +174,6 @@ String WebManager::_buildPage(const String& message) {
                 + message + "</div>";
     }
 
-    if (isStopRole(_role.getRole())) {
-        html += "<a class=\"nav-link\" href=\"/inputs\">View Input Status</a>";
-    }
-
     // Status block
     html += R"(
     <div class="status-block">
@@ -238,6 +235,23 @@ String WebManager::_buildPage(const String& message) {
     + String(_role.getRoleName() == "BLUE_ALLIANCE" ? "selected" : "") + R"(>Blue Alliance E-stop / A-stop</option>
         </select>
       </div>
+
+      <hr class="divider">
+      <h2>Alliance Stop Inputs</h2>
+      <div class="field">
+        <label>E-stop / A-stop press debounce (ms)</label>
+        <input type="number" name="pressDebounceMs" min="0" max="1000" step="1" value=")"
+    + String(alliance::loadPressDebounceMs()) + R"(">
+        <small>Red/Blue Alliance roles only. A press must remain stable for this duration.
+        Releases have no debounce; the existing stop hold still applies.
+        0 disables debounce. Applies after reboot.</small>
+      </div>)";
+
+    if (isStopRole(_role.getRole())) {
+        html += "<a class=\"nav-link\" href=\"/inputs\">View Input Status</a>";
+    }
+
+    html += R"(
 
       <hr class="divider">
       <h2>LED Control</h2>
@@ -588,12 +602,26 @@ void WebManager::_setupRoutes() {
         String role = value("role", _role.getRoleName());
         host.trim();
         long port = value("wsPort", String(_ws.arenaPort)).toInt();
+        String debounceText = value("pressDebounceMs", String(alliance::loadPressDebounceMs()));
+        bool validDebounce = debounceText.length() > 0 && debounceText.length() <= 4;
+        for (size_t i = 0; i < debounceText.length(); ++i) {
+            if (debounceText[i] < '0' || debounceText[i] > '9') validDebounce = false;
+        }
+        uint32_t debounceMs = debounceText.toInt();
+        if (!validDebounce || debounceMs > alliance::MaxPressDebounceMs) {
+            req->send(400, "text/plain", "Press debounce must be a whole number from 0 to 1000 ms; settings not saved.");
+            return;
+        }
         IPAddress address;
         if ((!dhcp && (!address.fromString(ip) || !address.fromString(gateway))) ||
             !address.fromString(host) || port < 1 || port > 65535 ||
             (role != "redHub" && role != "blueHub" && role != "FMS_TABLE" &&
              role != "RED_ALLIANCE" && role != "BLUE_ALLIANCE")) {
             req->send(400, "text/plain", "Invalid network address, port, or device role; settings not saved.");
+            return;
+        }
+        if (!alliance::savePressDebounceMs(debounceMs)) {
+            req->send(500, "text/plain", "Could not save press debounce; please retry.");
             return;
         }
         _eth.useDHCP = dhcp;

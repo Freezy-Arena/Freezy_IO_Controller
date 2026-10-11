@@ -23,6 +23,18 @@ the arena interprets as asserted. GPIO LOW sends `true`, meaning released.
 The sampler reads all six inputs every RTOS tick (requested interval 1 ms).
 This is a requested cadence, not a measured timing guarantee.
 
+The configuration page's **Alliance Stop Inputs** section sets a shared E-stop /
+A-stop press debounce from 0 to 1000 ms, defaulting to **20 ms**. Save & Reboot
+persists it in `alliance/pressDebounceMs` and applies it on the next boot. Zero
+disables debounce. Each input has an independent timer: it must remain asserted
+continuously for the configured duration before a press enters its delivery
+queue. A sampled release cancels a pending press and passes through immediately;
+the existing post-ACK release hold still applies. Shorter pulses are ignored.
+Buttons held at boot also wait for debounce, with an initial released state
+queued while qualification is pending. The input-status page shows raw readings,
+so it can show a press before a debounced event is queued. Debounce adds to delivery
+latency; queued press timestamps start when the press qualifies.
+
 The W5500 uses SPI2 with SCK 13, MISO 12, MOSI 11, CS 14, IRQ 10, RST 9.
 Alliance roles do not initialize hub counters, relays, DMX, field-stop GPIO 33,
 or start-button GPIO 34. They do not send hub telemetry or start-match requests.
@@ -49,7 +61,7 @@ to its own six channels. Hub send toggles cannot disable stop delivery.
 This requires the Freezy arena extensions; upstream compatibility is not assumed.
 An ACK confirms the input write, not that the arena or robot has acted on it.
 
-Each input has a 256-entry FIFO, including its boot snapshot. Transitions remain
+Each input has a 256-entry FIFO, including its debounced boot snapshot. Qualified transitions remain
 until acknowledged. Round-robin selection preserves order within each input
 and avoids starvation between inputs; there is no global ordering across pins.
 An acknowledged assertion holds that input's release for at least 100 ms.
@@ -108,6 +120,25 @@ Network and arena settings use the existing FMS migration: `useDHCP`,
 only where their destination keys are missing. The role marker is written last.
 Original keys remain intact; an already configured hub role takes precedence.
 Existing hub configuration can select either new role manually.
+
+## Follow-up: arena load and batching
+
+Once the full arena is set up, the user plans to monitor arena scan times with
+all controllers connected. Use those measurements, alongside controller ACK
+latency, retries, and queue depths, to decide whether traffic optimization is
+needed. Batching is a future option; current delivery behavior is unchanged.
+
+Consider combining the six stable input refreshes from each alliance controller
+into one `setInput` message with one acknowledgment. This could reduce refresh
+request/ACK counts by roughly sixfold at the same refresh interval. Verify arena
+batch support and acknowledgment semantics first: the current controller accepts
+only `success: true` with `count: 1`. Batch acknowledgment tracking would need to
+identify exactly which writes succeeded before consuming any queued history.
+
+Preserve per-input press/release ordering, debounce, release holds, retry
+retention, and fault behavior. In particular, do not collapse a queued press
+and release into a released snapshot. Evaluate batching stable refreshes first,
+while retaining prompt delivery of qualified input changes.
 
 ## Validation
 

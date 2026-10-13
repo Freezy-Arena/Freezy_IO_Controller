@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LED Settings</title>
+
+  <link rel="stylesheet" href="/static/css/led.css">
+  <link rel="stylesheet" href="/static/css/common.css">
+  <script src="/static/js/led.js" defer></script>
+</head>
+<body>
+  <div class="card">
+    {{titleBar}}
+    <h1>LED Settings</h1>
+    <p class="intro">Configure how this controller drives the connected LED strip.</p>
+    <div class="warning"><strong>Reboot required:</strong> Saving this page will reboot the controller so all LED changes can take effect.</div>
+    <div class="message {{messageClass}}" {{messageHidden}}>{{message}}</div>
+    <form method="POST" action="/led/save">
+      <div class="field">
+        <label for="ledControl">Control Mode</label>
+        <select id="ledControl" name="ledControl">
+          <option value="0" {{mode_0}}>Coil</option>
+          <option value="1" {{mode_1}}>DMX Direct (Single Universe)</option>
+          <option value="2" {{mode_2}}>DMX WebSocket (Hub role)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ledCount">Number of LEDs</label>
+        <input id="ledCount" type="number" name="ledCount" value="{{ledCount}}" min="1" max="{{maxLedCount}}" step="1" required>
+      </div>
+      <div class="field">
+        <label for="colorOrder">RGB Color Order</label>
+        <select id="colorOrder" name="colorOrder">
+          <option value="RGB" {{order_RGB}}>RGB</option>
+          <option value="RBG" {{order_RBG}}>RBG</option>
+          <option value="GRB" {{order_GRB}}>GRB</option>
+          <option value="GBR" {{order_GBR}}>GBR</option>
+          <option value="BRG" {{order_BRG}}>BRG</option>
+          <option value="BGR" {{order_BGR}}>BGR</option>
+        </select>
+      </div>
+      <button type="submit">Save &amp; Reboot</button>
+    </form>
+    <a class="back" href="/">Back to Device Configuration</a>
+  </div>
+</body>
+</html>

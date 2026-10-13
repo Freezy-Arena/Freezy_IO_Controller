@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1'>
+<title>Alliance Stop LEDs</title>
+<link rel="stylesheet" href="/static/css/allianceLeds.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<script src="/static/js/allianceLeds.js" defer>
+</script>
+</head>
+<body>
+<main>
+{{titleBar}}
+<h1>Alliance Stop LEDs</h1>
+<p>Status indicators use the original stop-controller wiring: GPIO 47, GRB, 750 LEDs, brightness 15, 900 mW power limit.</p>
+<p>LED 0: delivery heartbeat; LED 1: alliance color (flashing red on a latched fault); LED 2: WebSocket activity. Other pixels remain off.</p>
+<p>
+<a href='/'>Back to configuration</a>
+</p>
+</main>
+</body>
+</html>

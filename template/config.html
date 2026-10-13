@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Device Configuration</title>
+
+  <link rel="stylesheet" href="/static/css/config.css">
+  <link rel="stylesheet" href="/static/css/common.css">
+  <script src="/static/js/config.js" defer></script>
+</head>
+<body>
+  <div class="card">
+    {{titleBar}}
+    <div class="header">
+      <div class="dot"></div>
+      <h1>Device Configuration</h1>
+    </div>
+    <div class="status-block">
+      <div class="status-row"><span>IP Address</span><span>{{ipAddress}}</span></div>
+      <div class="status-row"><span>Mode</span><span>{{networkMode}}</span></div>
+    </div>
+
+    <h2>Network Settings</h2>
+    <div class="message {{messageClass}}" {{messageHidden}}>{{message}}</div>
+    <form method="POST" action="/save">
+
+      <div class="toggle-row">
+        <div class="toggle-label">
+          Use DHCP
+          <small>Automatically assign IP address</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="dhcpToggle" name="useDHCP" value="1" {{dhcpChecked}}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="field static-field">
+        <label>Static IP Address</label>
+        <input type="text" name="staticIP" value="{{staticIp}}" placeholder="192.168.1.200">
+      </div>
+
+      <div class="field static-field">
+        <label>Gateway</label>
+        <input type="text" name="staticGW" value="{{gateway}}" placeholder="192.168.1.1">
+      </div>
+
+      <hr class="divider">
+      <h2>WebSocket Settings</h2>
+      <div class="field">
+        <label>Arena Server IP (WebSocket and FMS HTTP)</label>
+        <input type="text" name="wsHost" value="{{arenaHost}}" placeholder="10.0.100.5">
+        <label>Arena Server Port</label>
+        <input type="number" name="wsPort" min="1" max="65535" value="{{arenaPort}}">
+      </div>
+      <a class="nav-link" href="/websocket">Configure WebSocket Messages</a>
+
+      <hr class="divider">
+      <h2>Device Role</h2>
+      <div class="field">
+        <label>Role</label>
+        <select name="role">
+          <option value="redHub" {{role_redHub}}>Red Hub</option>
+          <option value="blueHub" {{role_blueHub}}>Blue Hub</option>
+          <option value="FMS_TABLE" {{role_FMS_TABLE}}>FMS Table</option>
+          <option value="RED_ALLIANCE" {{role_RED_ALLIANCE}}>Red Alliance E-stop / A-stop</option>
+          <option value="BLUE_ALLIANCE" {{role_BLUE_ALLIANCE}}>Blue Alliance E-stop / A-stop</option>
+        </select>
+      </div>
+
+      <hr class="divider">
+      <h2>Alliance Stop Inputs</h2>
+      <div class="field">
+        <label>E-stop / A-stop press debounce (ms)</label>
+        <input type="number" name="pressDebounceMs" min="0" max="1000" step="1" value="{{pressDebounceMs}}">
+        <small>Red/Blue Alliance roles only. A press must remain stable for this duration.
+        Releases have no debounce; the existing stop hold still applies.
+        0 disables debounce. Applies after reboot.</small>
+      </div>
+
+      <a class="nav-link" href="/inputs" {{inputStatusHidden}}>View Input Status</a>
+      <hr class="divider">
+      <h2>LED Control</h2>
+      <a class="nav-link" href="/led">Configure LED Settings</a>
+      <a class="nav-link" href="/update">Firmware Update</a>
+
+      <hr class="divider">
+      <button type="submit">Save &amp; Reboot</button>
+    </form>
+  </div>
+</body>
+</html>

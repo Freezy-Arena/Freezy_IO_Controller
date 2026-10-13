@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Input Status</title>
+
+<link rel="stylesheet" href="/static/css/inputs.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<script src="/static/js/inputs.js" defer></script>
+</head>
+<body>
+<main>
+{{titleBar}}
+  <a href="/">&larr; Device configuration</a>
+  <h1>Input Status</h1>
+  <p id="role">Reading active device role&hellip;</p>
+  <p class="note">Live local button readings. These indicators do not confirm that the arena received a stop or accepted a start.</p>
+  <p id="connection" role="status">Connecting to controller&hellip;</p>
+  <p id="fault" role="alert" hidden>Controller fault is latched. The readings below show the physical inputs; stop delivery is forcing stops while this fault is active.</p>
+  <section id="inputs" aria-label="Input indicators"></section>
+  <p class="note">Red: stop pressed &middot; Green: start pressed &middot; Gray: released<br>
+    Dashed: reading unavailable. Refreshes every half second.</p>
+  <noscript><p>Enable JavaScript to view live input status.</p></noscript>
+</main>
+
+</body>
+</html>

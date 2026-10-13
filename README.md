@@ -320,6 +320,56 @@ src/
     └── input_map.h                Seasonal PLC input assignments
 ```
 
+## Web templates and static assets
+
+Web UI source files live at the repository root:
+
+```text
+template/
+  config.html           Main configuration page
+  websocket.html        Arena credentials and message settings
+  led.html              Hub LED settings
+  inputs.html           Live input status
+  update.html           Firmware upload page
+  allianceLeds.html      Alliance LED information
+  fmsLeds.html           FMS Table LED information
+  reboot.html            Shared reboot page
+  titleBar.html          Shared branding and version partial
+static/
+  css/                  Matching pageName.css files and common.css
+  js/                   Matching pageName.js files
+tools/embed_web_assets.py
+```
+
+Edit each page's HTML, CSS, and JavaScript directly. Pages with no script behavior
+still have a matching `.js` file ready for future changes. `common.css` styles the
+shared title bar. The existing page URLs and form POST endpoints are unchanged.
+
+`pio run` automatically embeds all templates and static files in `firmware.bin`
+using a [PlatformIO pre-build script](https://docs.platformio.org/en/latest/scripting/launch_types.html).
+Upload that binary normally over USB or through the firmware update page. No
+filesystem upload (`uploadfs`), SD card, or second update is needed. Generated C++
+data lives under `.pio/build/<environment>/generated/`; do not edit it.
+
+Templates use `{{name}}` placeholders. C++ page handlers in
+`src/webserver/web_manager.cpp` pass values to `WebAssets::render`; OTA page values
+are in `firmware_update.cpp`. Values are HTML-escaped and should only be used in
+text or quoted attributes, not JavaScript or CSS. The built-in `{{titleBar}}`
+inserts `template/titleBar.html`, which uses `{{version}}` from the firmware header.
+The OTA token is provided through an HTML meta element read by `update.js`.
+This is a small placeholder renderer, not the Freezy Arena template engine.
+
+To add a page, create its three files, link `/static/css/pageName.css` and
+`/static/js/pageName.js` in its template, and add a C++ route that renders
+`WebAssets::render("pageName", {...})`. Templates are not directly public URLs.
+To add an image, font, or other static object, place it under `static/` and refer
+to its matching URL, such as `/static/images/logo.svg`. The build discovers new
+static files recursively and serves their original bytes with the appropriate
+content type (unknown types use `application/octet-stream`). Dotfiles are excluded.
+Everything under `static/` is public: do not place credentials or private files there.
+Assets count toward the OTA application slot size. Static responses disable caching
+so browsers do not retain obsolete CSS or JavaScript after a firmware update.
+
 ## Seasonal updates
 
 Review these files when the arena PLC mapping changes:
@@ -337,8 +387,8 @@ Review these files when the arena PLC mapping changes:
 ### Firmware version
 
 The web pages show a shared **Freexy IO Contoller** title bar and firmware version
-badge. The version is compiled into the firmware from `src/firmware_version.h`,
-currently `0.1.0`. It describes the running image, so OTA updates also update the
+badge. The version is compiled into the firmware from `src/firmware_version.h`.
+It describes the running image, so OTA updates also update the
 badge. Do not store this value in Preferences/NVS: an old saved value could survive
 an update and misidentify the installed firmware.
 

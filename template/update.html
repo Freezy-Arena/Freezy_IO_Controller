@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="update-token" content="{{updateToken}}">
+<title>Firmware Update</title>
+<link rel="stylesheet" href="/static/css/update.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<script src="/static/js/update.js" defer>
+</script>
+</head>
+<body>
+<main>
+{{titleBar}}
+<h1>Firmware Update</h1>
+<p>Choose the <strong>firmware.bin</strong> built for this Freezy IO Controller ESP32-S3.</p>
+<p class="warning">Maintenance only: take the arena out of service first. Updating can interrupt stop inputs and outputs, and restarts the controller. Keep power and Ethernet connected.</p>
+<p>Use the application binary, not bootloader.bin, partitions.bin, or a merged flash image. Saved settings are retained.</p>
+<form id="form">
+<label for="firmware">Firmware (.bin)</label>
+<input id="firmware" type="file" accept=".bin" required>
+<button id="upload" type="submit">Upload and Update</button>
+</form>
+<progress id="progress" max="100" value="0" aria-label="Upload progress">
+</progress>
+<p id="status" role="status" aria-live="polite">Ready.</p>
+<a href="/">Back to Device Configuration</a>
+</main>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebSocket Message Controls</title>
+
+  <link rel="stylesheet" href="/static/css/websocket.css">
+  <link rel="stylesheet" href="/static/css/common.css">
+  <script src="/static/js/websocket.js" defer></script>
+</head>
+<body>
+  <div class="card">
+    {{titleBar}}
+    <h1>WebSocket Message Controls</h1>
+    <p class="intro">Choose which PLC update messages this controller may transmit. Incoming WebSocket messages are unaffected.</p>
+    <div class="message {{messageClass}}" {{messageHidden}}>{{message}}</div>
+    <form method="POST" action="/websocket/save">
+      <div class="field">
+        <label for="authUsername">Arena username</label>
+        <input id="authUsername" name="authUsername" type="text" autocomplete="username" value="{{authUsername}}" required>
+      </div>
+      <div class="field">
+        <label for="authPassword">Arena password</label>
+        <input id="authPassword" name="authPassword" type="password" autocomplete="current-password" value="{{authPassword}}" required>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">Send Registers
+          <small>Allow hub counter updates</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" name="sendRegisters" value="1" {{registersChecked}}>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">Send Inputs
+          <small>Allow hub sensor updates. E-stop and A-stop delivery always stays enabled.</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" name="sendInputs" value="1" {{inputsChecked}}>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button type="submit">Save WebSocket Settings</button>
+    </form>
+    <a class="back" href="/">Back to Device Configuration</a>
+  </div>
+</body>
+</html>

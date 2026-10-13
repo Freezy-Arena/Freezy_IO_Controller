@@ -1,0 +1,6 @@
+*{box-sizing:border-box}body{margin:0;padding:40px 16px;background:#0f1117;color:#e2e8f0;font:16px system-ui}
+main{max-width:520px;margin:auto;padding:32px;background:#1a1d27;border:1px solid #2d3148;border-radius:12px}
+h1{font-size:1.3rem}p{line-height:1.5}a{color:#c7d2fe}label,input,button,progress{display:block;width:100%;margin:16px 0}
+button{padding:12px;background:#6366f1;color:white;border:0;border-radius:8px;font:inherit;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}.warning{padding:12px;background:#2b2111;color:#fde68a;border-radius:8px}
+#status{overflow-wrap:anywhere}progress{accent-color:#6366f1}

@@ -144,6 +144,19 @@ void setup()
 void loop()
 {
     network.update();
+    // Print the IP periodically during the first 30 seconds of loop().
+    static const uint32_t startupAt = millis();
+    static uint32_t lastIpPrint = 0;
+
+    const uint32_t now = millis();
+
+    if (uint32_t(now - startupAt) < 30000 &&
+        network.isConnected() &&
+        uint32_t(now - lastIpPrint) >= 2000) {
+        lastIpPrint = now;
+        Serial.printf("[BOOT] Board address: http://%s\n",
+                    network.localIPString().c_str());
+    }
     ws.setLedModeEnabled(!isStopController && network.ledControlMode == LED_CONTROL_WEBSOCKET);
     ws.update();                    // Must be called every loop
     if (isFmsTable) fmsTable.serviceStops(ws);

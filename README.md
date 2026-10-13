@@ -61,6 +61,42 @@ The main page configures:
 
 Saving the main page restarts the controller.
 
+### Firmware updates over Ethernet
+
+Open **Firmware Update** on the main page, or `http://<device-ip>/update`.
+The page provides a `.bin` file picker, **Upload and Update** button, progress,
+and a validation result. Updates use the existing W5500 Ethernet connection;
+Wi-Fi and a separate OTA service are not required.
+
+1. Install this OTA-capable firmware once over USB: `pio run --target upload`.
+   The explicit `default_8MB.csv` layout matches this project's board default:
+   two `0x330000`-byte (3,342,336-byte) application slots plus OTA metadata.
+   A device with a different partition layout needs USB flashing first.
+2. For subsequent releases, run `pio run` and locate
+   `.pio/build/esp32-s3-devkitm-1/firmware.bin`.
+3. Take the arena out of service before updating. Flash writes and reboot can
+   interrupt input sampling, stop delivery, and outputs. Keep power and Ethernet
+   connected throughout the update.
+4. Open **Firmware Update**, select that application's `firmware.bin`, and
+   click **Upload and Update**. Do not upload `bootloader.bin`, `partitions.bin`,
+   filesystem images, or merged flash images.
+5. Wait for the installed/rebooting message. After about 15 seconds, return to
+   Device Configuration and check the controller's role, connection, and inputs
+   before returning the arena to service.
+
+The server streams into the inactive application slot, checks size and ESP image
+validity, and selects it for boot only after the complete upload validates.
+Disconnected uploads are aborted; validation failures keep the current boot
+selection. Preferences/NVS settings are retained. This does not provide automatic
+rollback if a valid image boots but has application bugs; keep USB recovery available.
+Future firmware must retain the updater to allow further browser updates.
+
+The device web interface, including this updater, has no login or HTTPS. Anyone
+who can reach it can install firmware; use a trusted, isolated maintenance network.
+The page token prevents ordinary cross-origin browser submissions but is not user
+authentication or a firmware signature. ESP image validation cannot establish
+that a binary is a trusted Freezy IO Controller release.
+
 Choose the role that matches the device's wiring and job:
 
 | Role | Device responsibility |
@@ -297,6 +333,23 @@ Review these files when the arena PLC mapping changes:
 | `src/led_animator/led_animator.h` | Arena LED mode integer definitions |
 
 ## Build, upload, and monitor
+
+### Firmware version
+
+The web pages show a shared **Freexy IO Contoller** title bar and firmware version
+badge. The version is compiled into the firmware from `src/firmware_version.h`,
+currently `0.1.0`. It describes the running image, so OTA updates also update the
+badge. Do not store this value in Preferences/NVS: an old saved value could survive
+an update and misidentify the installed firmware.
+
+Use `MAJOR.MINOR.PATCH`: increment PATCH for fixes, MINOR for compatible features,
+and MAJOR for breaking configuration or protocol changes. Before publishing a
+release, update the header, build, and tag the corresponding Git commit with the
+same version (for example, `v0.1.0`). Archive its binary as
+`freezy-io-controller-0.1.0.bin`. Development builds can use a suffix such as
+`0.2.0-dev`; avoid automatically changing the release version on every build.
+
+### PlatformIO commands
 
 Freezy IO Controller uses [PlatformIO](https://platformio.org/).
 

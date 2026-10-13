@@ -1,4 +1,5 @@
 #pragma once
+#include "page_branding.h"
 
 static const char INPUT_STATUS_PAGE[] PROGMEM = R"HTML(<!DOCTYPE html>
 <html lang="en">
@@ -33,6 +34,7 @@ static const char INPUT_STATUS_PAGE[] PROGMEM = R"HTML(<!DOCTYPE html>
 </head>
 <body>
 <main>
+)HTML" DEVICE_TITLE_BAR R"HTML(
   <a href="/">&larr; Device configuration</a>
   <h1>Input Status</h1>
   <p id="role">Reading active device role&hellip;</p>

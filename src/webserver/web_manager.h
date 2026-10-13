@@ -1,5 +1,7 @@
 #pragma once
 #include <Arduino.h>
+#include <atomic>
+#include <esp_ota_ops.h>
 #include <ESPAsyncWebServer.h>
 #include "../network/network_manager.h"
 #include "../role_config.h"
@@ -23,8 +25,15 @@ private:
     WsManager&      _ws;
     InputStatusProvider _inputStatus = nullptr;
 
-    bool        _rebootPending  = false;
+    std::atomic<bool> _rebootPending{false};
     uint32_t    _rebootAt       = 0;
+    AsyncWebServerRequest* _otaRequest = nullptr;
+    esp_ota_handle_t _otaHandle = 0;
+    bool _otaWriting = false;
+    size_t _otaReceived = 0;
+    String _otaError;
+    String _otaToken;
+    void _setupOtaRoutes();
 
     String _buildPage(const String& message = "");
     String _buildWebSocketPage(const String& message = "");

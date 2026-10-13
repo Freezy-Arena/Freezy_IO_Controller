@@ -1,4 +1,5 @@
 #include "web_manager.h"
+#include "page_branding.h"
 #include "input_status_page.h"
 #include "../alliance/alliance_policy.h"
 #include "../alliance/alliance_settings.h"
@@ -162,6 +163,7 @@ String WebManager::_buildPage(const String& message) {
 </head>
 <body>
   <div class="card">
+    )" DEVICE_TITLE_BAR R"(
     <div class="header">
       <div class="dot"></div>
       <h1>Device Configuration</h1>
@@ -256,6 +258,7 @@ String WebManager::_buildPage(const String& message) {
       <hr class="divider">
       <h2>LED Control</h2>
       <a class="nav-link" href="/led">Configure LED Settings</a>
+      <a class="nav-link" href="/update">Firmware Update</a>
 
       <hr class="divider">
       <button type="submit">Save &amp; Reboot</button>
@@ -307,6 +310,7 @@ String WebManager::_buildLedPage(const String& message) {
 </head>
 <body>
   <div class="card">
+    )" DEVICE_TITLE_BAR R"(
     <h1>LED Settings</h1>
     <p class="intro">Configure how this controller drives the connected LED strip.</p>
     <div class="warning"><strong>Reboot required:</strong> Saving this page will reboot the controller so all LED changes can take effect.</div>)";
@@ -399,6 +403,7 @@ String WebManager::_buildWebSocketPage(const String& message) {
 </head>
 <body>
   <div class="card">
+    )" DEVICE_TITLE_BAR R"(
     <h1>WebSocket Message Controls</h1>
     <p class="intro">Choose which PLC update messages this controller may transmit. Incoming WebSocket messages are unaffected.</p>)";
 
@@ -449,6 +454,7 @@ String WebManager::_buildWebSocketPage(const String& message) {
 }
 
 void WebManager::_setupRoutes() {
+    _setupOtaRoutes();
 
     _server.on("/inputs", HTTP_GET, [this](AsyncWebServerRequest* req) {
         if (!isStopRole(_role.getRole())) {
@@ -515,17 +521,18 @@ void WebManager::_setupRoutes() {
 
     _server.on("/led", HTTP_GET, [this](AsyncWebServerRequest* req) {
         if (isAllianceRole(_role.getRole())) {
-            req->send(200, "text/html", "<h1>Alliance Stop LEDs</h1><p>Status indicators use the original stop-controller wiring: GPIO 47, GRB, 750 LEDs, brightness 15, 900 mW power limit.</p><p>LED 0: delivery heartbeat; LED 1: alliance color (flashing red on a latched fault); LED 2: WebSocket activity. Other pixels remain off.</p><p><a href='/'>Back to configuration</a></p>");
+            req->send(200, "text/html", "<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Alliance Stop LEDs</title><body style='background:#0f1117;color:#e2e8f0;font-family:system-ui;padding:32px 16px'><main style='max-width:520px;margin:auto'>" DEVICE_TITLE_BAR "<h1>Alliance Stop LEDs</h1><p>Status indicators use the original stop-controller wiring: GPIO 47, GRB, 750 LEDs, brightness 15, 900 mW power limit.</p><p>LED 0: delivery heartbeat; LED 1: alliance color (flashing red on a latched fault); LED 2: WebSocket activity. Other pixels remain off.</p><p><a href='/'>Back to configuration</a></p></main></body></html>");
             return;
         }
         if (_role.getRole() == ROLE_FMS_TABLE) {
-            req->send(200, "text/html", "<h1>FMS Table LEDs</h1><p>Stack lights and status indicators use the table wiring: GPIO 47, GRB, 750 LEDs, brightness 15, 900 mW power limit.</p><p><a href='/'>Back to configuration</a></p>");
+            req->send(200, "text/html", "<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FMS Table LEDs</title><body style='background:#0f1117;color:#e2e8f0;font-family:system-ui;padding:32px 16px'><main style='max-width:520px;margin:auto'>" DEVICE_TITLE_BAR "<h1>FMS Table LEDs</h1><p>Stack lights and status indicators use the table wiring: GPIO 47, GRB, 750 LEDs, brightness 15, 900 mW power limit.</p><p><a href='/'>Back to configuration</a></p></main></body></html>");
             return;
         }
         req->send(200, "text/html", _buildLedPage());
     });
 
     _server.on("/led/save", HTTP_POST, [this](AsyncWebServerRequest* req) {
+        if (_otaRequest || _rebootPending) { req->send(409, "text/plain", "Update or reboot in progress."); return; }
         if (isStopRole(_role.getRole())) {
             req->send(400, "text/plain", "Stop-controller roles use their fixed LED layouts.");
             return;
@@ -564,15 +571,16 @@ void WebManager::_setupRoutes() {
         <meta http-equiv="refresh" content="5;url=/"><title>Rebooting</title></head>
         <body style="background:#0f1117;color:#e2e8f0;font-family:sans-serif;
         display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-        <div style="text-align:center;"><h2 style="color:#86efac;">LED Settings Saved</h2>
+        <div style="text-align:center;">)" DEVICE_TITLE_BAR R"(<h2 style="color:#86efac;">LED Settings Saved</h2>
         <p style="color:#94a3b8;">Device is rebooting &mdash; reconnecting in 5 seconds...</p>
         </div></body></html>)";
         req->send(200, "text/html", rebootPage);
-        _rebootPending = true;
         _rebootAt = millis() + 3000;
+        _rebootPending = true;
     });
 
     _server.on("/websocket/save", HTTP_POST, [this](AsyncWebServerRequest* req) {
+        if (_otaRequest || _rebootPending) { req->send(409, "text/plain", "Update or reboot in progress."); return; }
         if (req->hasParam("authUsername", true))
             _ws.authUsername = req->getParam("authUsername", true)->value();
         if (req->hasParam("authPassword", true))
@@ -590,6 +598,7 @@ void WebManager::_setupRoutes() {
 
     // POST /save — save and reboot
     _server.on("/save", HTTP_POST, [this](AsyncWebServerRequest* req) {
+        if (_otaRequest || _rebootPending) { req->send(409, "text/plain", "Update or reboot in progress."); return; }
 
         // Validate the entire form before changing persisted settings.
         auto value = [&](const char* key, const String& fallback) -> String {
@@ -641,15 +650,15 @@ void WebManager::_setupRoutes() {
         <title>Rebooting</title>
         </head><body style="background:#0f1117;color:#e2e8f0;font-family:sans-serif;
         display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-        <div style="text-align:center;">
+        <div style="text-align:center;">)" DEVICE_TITLE_BAR R"(
           <h2 style="color:#86efac;">Settings Saved</h2>
           <p style="color:#94a3b8;">Device is rebooting — reconnecting in 5 seconds...</p>
         </div>
         </body></html>)";
 
         req->send(200, "text/html", rebootPage);
-        _rebootPending  = true;
         _rebootAt       = millis() + 3000;
+        _rebootPending  = true;
     });
 
     // 404
@@ -660,8 +669,7 @@ void WebManager::_setupRoutes() {
 }
 
 void WebManager::update() {
-    if (_rebootPending && millis() >= _rebootAt) {
-        _rebootPending = false;
+    if (_rebootPending && int32_t(millis() - _rebootAt) >= 0) {
         Serial.println("[WEB] Rebooting now...");
         ESP.restart();
     }

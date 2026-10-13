@@ -5,6 +5,7 @@ body { margin: 0; padding: 40px 16px; min-height: 100vh; background: #0f1117;
 .card { width: 100%; max-width: 480px; padding: 36px; background: #1a1d27;
   border: 1px solid #2d3148; border-radius: 12px; }
 h1 { margin: 0 0 8px; font-size: 1.2rem; color: #f1f5f9; }
+h2 { margin: 28px 0 12px; font-size: 1rem; color: #f1f5f9; }
 .intro { margin: 0 0 20px; color: #94a3b8; font-size: 0.85rem; line-height: 1.45; }
 .warning { padding: 12px 16px; margin-bottom: 20px; border: 1px solid #854d0e;
   border-radius: 8px; background: #2b2111; color: #fde68a; font-size: 0.85rem; line-height: 1.4; }

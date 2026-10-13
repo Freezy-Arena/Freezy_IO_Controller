@@ -7,18 +7,18 @@ void LedManager::begin(bool stopController) {
         _ledCount = 750;
         _colorOrder = LED_ORDER_GRB;
         _brightness = 15;
-        controller = &FastLED.addLeds<LED_TYPE, 47, GRB>(_leds, _outputCount);
+        controller = &FastLED.addLeds<LED_TYPE, 47, GRB>(_lastShown, _outputCount);
         FastLED.setMaxPowerInMilliWatts(900);
     } else {
         loadPreferences();
         switch (_colorOrder) {
-            case LED_ORDER_RGB: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, RGB>(_leds, _outputCount); break;
-            case LED_ORDER_RBG: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, RBG>(_leds, _outputCount); break;
-            case LED_ORDER_GRB: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, GRB>(_leds, _outputCount); break;
-            case LED_ORDER_GBR: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, GBR>(_leds, _outputCount); break;
-            case LED_ORDER_BRG: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, BRG>(_leds, _outputCount); break;
-            case LED_ORDER_BGR: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, BGR>(_leds, _outputCount); break;
-            default: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, BRG>(_leds, _outputCount); break;
+            case LED_ORDER_RGB: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, RGB>(_lastShown, _outputCount); break;
+            case LED_ORDER_RBG: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, RBG>(_lastShown, _outputCount); break;
+            case LED_ORDER_GRB: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, GRB>(_lastShown, _outputCount); break;
+            case LED_ORDER_GBR: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, GBR>(_lastShown, _outputCount); break;
+            case LED_ORDER_BRG: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, BRG>(_lastShown, _outputCount); break;
+            case LED_ORDER_BGR: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, BGR>(_lastShown, _outputCount); break;
+            default: controller = &FastLED.addLeds<LED_TYPE, LED_PIN, BRG>(_lastShown, _outputCount); break;
         }
         controller->setCorrection(TypicalLEDStrip);
     }
@@ -46,17 +46,19 @@ void LedManager::show() {
     // Compare the completed frame: animations may change pixels and then
     // restore them while rendering, leaving the final output unchanged.
     bool changed = !_hasShown || _brightness != _lastShownBrightness;
-    for (uint16_t i = 0; !changed && i < _outputCount; i++) {
-        changed = _leds[i] != _lastShown[i];
+    for (uint16_t i = 0; i < _outputCount; i++) {
+        const CRGB next = _winnerOverride
+            ? (i < _ledCount ? _winnerColor : CRGB::Black) : _leds[i];
+        if (next != _lastShown[i]) {
+            changed = true;
+            _lastShown[i] = next;
+        }
     }
     if (!changed) {
         _dirty = false;
         return;
     }
     FastLED.show();
-    for (uint16_t i = 0; i < _outputCount; i++) {
-        _lastShown[i] = _leds[i];
-    }
     _lastShownBrightness = _brightness;
     _hasShown = true;
     _dirty = false;
@@ -176,6 +178,10 @@ void LedManager::loadPreferences() {
     _colorOrder = savedOrder <= LED_ORDER_BGR
         ? static_cast<LedColorOrder>(savedOrder)
         : LED_ORDER_BRG;
+    _winnerDelaySeconds = _prefs.getUInt("winDelaySec", 0);
+    _winnerDurationSeconds = _prefs.getUInt("winDurationSec", 10);
+    if (_winnerDelaySeconds > MaxWinnerSeconds) _winnerDelaySeconds = 0;
+    if (_winnerDurationSeconds > MaxWinnerSeconds) _winnerDurationSeconds = 10;
     _prefs.end();
 }
 
@@ -183,7 +189,23 @@ void LedManager::savePreferences() {
     _prefs.begin(LED_PREFS_NS, false);
     _prefs.putUShort("count", _ledCount);
     _prefs.putUChar("colorOrder", static_cast<uint8_t>(_colorOrder));
+    _prefs.putUInt("winDelaySec", _winnerDelaySeconds);
+    _prefs.putUInt("winDurationSec", _winnerDurationSeconds);
     _prefs.end();
     Serial.printf("[LED] Prefs saved - count: %u, color order: %s\n",
                   _ledCount, getColorOrderName());
+}
+
+void LedManager::setWinnerTiming(uint32_t delaySeconds, uint32_t durationSeconds) {
+    if (delaySeconds > MaxWinnerSeconds || durationSeconds > MaxWinnerSeconds) return;
+    _winnerDelaySeconds = delaySeconds;
+    _winnerDurationSeconds = durationSeconds;
+}
+
+void LedManager::setWinnerOverride(bool active, CRGB color) {
+    if (_winnerOverride == active && (!active || _winnerColor == color)) return;
+    _winnerOverride = active;
+    _winnerColor = color;
+    _dirty = true;
+    show();
 }

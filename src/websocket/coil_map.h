@@ -19,6 +19,8 @@ enum PlcCoil : uint8_t {
     COIL_BLUE_HUB_MOTOR     = 10,
     COIL_RED_HUB_LIGHT      = 11,
     COIL_BLUE_HUB_LIGHT     = 12,
+    COIL_RED_WINS           = 13,
+    COIL_BLUE_WINS          = 14,
 
     COIL_COUNT              // Always last — gives total number of coils
 };

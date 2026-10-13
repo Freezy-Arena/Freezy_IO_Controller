@@ -156,8 +156,37 @@ Open **Configure LED Settings** from the main page.
 | Control Mode | Coil, DMX Direct, or DMX WebSocket |
 | Number of LEDs | 1–300; default 125 |
 | RGB Color Order | RGB, RBG, GRB, GBR, BRG, or BGR; default BRG |
+| Winner display delay | Whole seconds, 0–3600; default 0 |
+| Winner display duration | Whole seconds, 0–3600; default 10; 0 disables the display |
 
 FastLED selects the RGB color order during initialization. The LED page therefore warns the user and performs a **Save & Reboot** so all changes take effect.
+
+### Hub winner display
+
+For Red Hub and Blue Hub roles, a rising edge on `COIL_RED_WINS` or
+`COIL_BLUE_WINS` captures the result and starts the configured delay. After the
+delay, all LEDs within the configured LED count show the result for the configured
+duration, overriding Coil, DMX Direct, and DMX WebSocket lighting:
+
+| Coils at the rising edge | Red hub | Blue hub |
+|---|---|---|
+| Red win only | Red | Red |
+| Blue win only | Blue | Blue |
+| Both win coils on (tie) | Red | Blue |
+
+Set the delay and duration under **Configure LED Settings → Hub winner display**.
+Normal lighting continues during the delay. Falling edges do not cancel the delay
+or display; unchanged high coils do not retrigger it. A new rising edge on either
+coil replaces the captured result and restarts the delay and duration. If the coils
+rise in separate messages while the first remains high, the second edge captures
+a tie. The first received high value after boot counts as a rising edge. Incomplete
+snapshots missing either winner coil are ignored for winner edge detection.
+
+Normal LED commands continue updating in the background, and the latest normal
+output is restored when the display expires, even without another coil message.
+Timing uses nonblocking, rollover-safe elapsed-time checks. The settings persist
+in the `leds` Preferences namespace as `winDelaySec` and `winDurationSec` and apply
+after reboot. FMS Table and alliance stop roles do not use the winner display.
 
 ## LED control modes
 

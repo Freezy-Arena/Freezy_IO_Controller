@@ -40,6 +40,23 @@
           <option value="BGR" {{order_BGR}}>BGR</option>
         </select>
       </div>
+      <h2>Hub winner display</h2>
+      <p class="intro">A rising red or blue win coil lights the entire configured strip
+        in the winning color on both hubs. If both coils are on, each hub uses its
+        own role color. This temporarily overrides every LED control mode.</p>
+      <div class="field">
+        <label for="winnerDelaySeconds">Delay before showing winner (seconds)</label>
+        <input id="winnerDelaySeconds" name="winnerDelaySeconds" type="number"
+          min="0" max="{{maxWinnerSeconds}}" step="1" value="{{winnerDelaySeconds}}" required>
+      </div>
+      <div class="field">
+        <label for="winnerDurationSeconds">Time to stay on (seconds)</label>
+        <input id="winnerDurationSeconds" name="winnerDurationSeconds" type="number"
+          min="0" max="{{maxWinnerSeconds}}" step="1" value="{{winnerDurationSeconds}}" required>
+      </div>
+      <p class="intro">Duration 0 disables the winner display. Normal lighting continues
+        during the delay and resumes when the duration ends. Turning the coils off
+        does not cancel the timer; a new rising edge restarts the sequence.</p>
       <button type="submit">Save &amp; Reboot</button>
     </form>
     <a class="back" href="/">Back to Device Configuration</a>

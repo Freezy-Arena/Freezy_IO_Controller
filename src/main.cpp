@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "led/led_manager.h"
+#include "led/winner_display.h"
 #include "counter/counter_manager.h"
 #include "relay/relay_manager.h"
 #include "network/network_manager.h"
@@ -14,6 +15,7 @@
 #include "alliance/alliance_stops.h"
 
 LedManager leds;
+WinnerDisplay winnerDisplay;
 CounterManager counters;
 RelayManager relays;
 EthManager network;
@@ -52,6 +54,13 @@ void onCoilUpdate(const bool* coils, uint8_t count) {
     auto coilActive = [&](uint8_t c) -> bool {
         return c < count && coils[c];
     };
+
+    // Ignore incomplete winner snapshots rather than inventing falling edges.
+    if (count > COIL_RED_WINS && count > COIL_BLUE_WINS) {
+        winnerDisplay.observe(coils[COIL_RED_WINS], coils[COIL_BLUE_WINS], millis());
+        leds.setWinnerOverride(winnerDisplay.update(millis()),
+            winnerDisplay.showRed(role.role == ROLE_RED_HUB) ? CRGB::Red : CRGB::Blue);
+    }
 
     // Match reset → clear all counters
     if (coilActive(COIL_MATCH_RESET)) {
@@ -126,6 +135,10 @@ void setup()
     }
 
     leds.begin(isStopController);
+    if (!isStopController) {
+        winnerDisplay.configure(leds.getWinnerDelaySeconds() * 1000U,
+                                leds.getWinnerDurationSeconds() * 1000U);
+    }
     ledAnimator.begin();
 
     network.begin(isStopController);
@@ -176,6 +189,8 @@ void loop()
     }
 
     LedControlMode ledMode = network.ledControlMode;
+    leds.setWinnerOverride(winnerDisplay.update(millis()),
+        winnerDisplay.showRed(roleManager.getRole() == ROLE_RED_HUB) ? CRGB::Red : CRGB::Blue);
 
     // DMX direct — handled by dmxLed.update()
     if (ledMode == LED_CONTROL_DMX) {

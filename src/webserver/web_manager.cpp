@@ -50,6 +50,9 @@ String WebManager::_buildLedPage(const String& message) {
         {"mode_2", String(ledMode == 2 ? "selected" : "")},
         {"ledCount", String(_leds.getLedCount())},
         {"maxLedCount", String(_leds.getMaxLedCount())},
+        {"winnerDelaySeconds", String(_leds.getWinnerDelaySeconds())},
+        {"winnerDurationSeconds", String(_leds.getWinnerDurationSeconds())},
+        {"maxWinnerSeconds", String(LedManager::MaxWinnerSeconds)},
         {"order_RGB", String(colorOrder == "RGB" ? "selected" : "")},
         {"order_RBG", String(colorOrder == "RBG" ? "selected" : "")},
         {"order_GRB", String(colorOrder == "GRB" ? "selected" : "")},
@@ -165,6 +168,24 @@ void WebManager::_setupRoutes() {
             ? req->getParam("ledCount", true)->value().toInt() : -1;
         String order = req->hasParam("colorOrder", true)
             ? req->getParam("colorOrder", true)->value() : "";
+        // Strict whole-second parsing; reject invalid values before any mutation.
+        auto seconds = [&](const char* name, uint32_t& result) {
+            if (!req->hasParam(name, true)) return false;
+            const String text = req->getParam(name, true)->value();
+            if (text.isEmpty() || text.length() > 4) return false;
+            result = 0;
+            for (size_t i = 0; i < text.length(); ++i) {
+                if (text[i] < '0' || text[i] > '9') return false;
+                result = result * 10 + (text[i] - '0');
+            }
+            return result <= LedManager::MaxWinnerSeconds;
+        };
+        uint32_t winnerDelay = 0, winnerDuration = 0;
+        if (!seconds("winnerDelaySeconds", winnerDelay) ||
+            !seconds("winnerDurationSeconds", winnerDuration)) {
+            req->send(400, "text/html", _buildLedPage("ERROR: Winner delay and duration must be whole seconds from 0 to 3600."));
+            return;
+        }
 
         if (mode < LED_CONTROL_COIL || mode > LED_CONTROL_WEBSOCKET) {
             req->send(200, "text/html", _buildLedPage("ERROR: Invalid LED control mode."));
@@ -183,6 +204,7 @@ void WebManager::_setupRoutes() {
 
         _eth.ledControlMode = static_cast<LedControlMode>(mode);
         _leds.setLedCount(static_cast<uint16_t>(count));
+        _leds.setWinnerTiming(winnerDelay, winnerDuration);
         _eth.savePreferences();
         _leds.savePreferences();
 

@@ -107,9 +107,14 @@ brightness 15 and a 900 mW power limit. Only the first three pixels are used:
 - 2: dim green/black activity based on parsed WebSocket message count.
 
 Other pixels stay off. The LED page describes this fixed configuration and
-rejects LED setting changes for stop roles. Five-second serial summaries report
-fault/loss counts, per-input queue depth/high-water marks, ACKs/retries, and
-maximum sampling, loop, rendering, and delivery timings.
+does not allow changes to the LED layout. Alliance roles can configure the
+winner strobe delay and on-time there (whole seconds, 0–3600); these use the
+same `winDelaySec` and `winDurationSec` settings as hub winner lights. GPIO 41
+activates only for the matching alliance win coil after the configured delay,
+then turns off after the configured on-time. An on-time of zero disables the
+strobe. Five-second serial summaries report fault/loss counts, per-input queue
+depth/high-water marks, ACKs/retries, and maximum sampling, loop, rendering, and
+delivery timings.
 
 ## Settings migration
 

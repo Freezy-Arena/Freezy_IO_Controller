@@ -146,7 +146,12 @@ void WebManager::_setupRoutes() {
 
     _server.on("/led", HTTP_GET, [this](AsyncWebServerRequest* req) {
         if (isAllianceRole(_role.getRole())) {
-            req->send(200, "text/html", WebAssets::render("allianceLeds"));
+            req->send(200, "text/html", WebAssets::render("allianceLeds", {
+                {"winnerDelaySeconds", String(_leds.getWinnerDelaySeconds())},
+                {"winnerDurationSeconds", String(_leds.getWinnerDurationSeconds())},
+                {"maxWinnerSeconds", String(LedManager::MaxWinnerSeconds)},
+                {"message", ""}, {"messageHidden", "hidden"}, {"messageClass", "success"}
+            }));
             return;
         }
         if (_role.getRole() == ROLE_FMS_TABLE) {
@@ -158,6 +163,37 @@ void WebManager::_setupRoutes() {
 
     _server.on("/led/save", HTTP_POST, [this](AsyncWebServerRequest* req) {
         if (_otaRequest || _rebootPending) { req->send(409, "text/plain", "Update or reboot in progress."); return; }
+        if (isAllianceRole(_role.getRole())) {
+            auto seconds = [&](const char* name, uint32_t& result) {
+                if (!req->hasParam(name, true)) return false;
+                const String text = req->getParam(name, true)->value();
+                if (text.isEmpty() || text.length() > 4) return false;
+                result = 0;
+                for (size_t i = 0; i < text.length(); ++i) {
+                    if (text[i] < '0' || text[i] > '9') return false;
+                    result = result * 10 + (text[i] - '0');
+                }
+                return result <= LedManager::MaxWinnerSeconds;
+            };
+            uint32_t winnerDelay = 0, winnerDuration = 0;
+            if (!seconds("winnerDelaySeconds", winnerDelay) ||
+                !seconds("winnerDurationSeconds", winnerDuration)) {
+                req->send(400, "text/html", WebAssets::render("allianceLeds", {
+                    {"winnerDelaySeconds", String(_leds.getWinnerDelaySeconds())},
+                    {"winnerDurationSeconds", String(_leds.getWinnerDurationSeconds())},
+                    {"maxWinnerSeconds", String(LedManager::MaxWinnerSeconds)},
+                    {"message", "ERROR: Winner delay and duration must be whole seconds from 0 to 3600."},
+                    {"messageHidden", ""}, {"messageClass", "error"}
+                }));
+                return;
+            }
+            _leds.setWinnerTiming(winnerDelay, winnerDuration);
+            _leds.saveWinnerTimingPreferences();
+            req->send(200, "text/html", WebAssets::render("reboot", {{"heading", "Winner Strobe Timing Saved"}}));
+            _rebootAt = millis() + 3000;
+            _rebootPending = true;
+            return;
+        }
         if (isStopRole(_role.getRole())) {
             req->send(400, "text/plain", "Stop-controller roles use their fixed LED layouts.");
             return;

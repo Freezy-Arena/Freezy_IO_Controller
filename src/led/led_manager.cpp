@@ -197,6 +197,13 @@ void LedManager::loadWinnerTimingPreferences() {
     _prefs.end();
 }
 
+void LedManager::saveWinnerTimingPreferences() {
+    _prefs.begin(LED_PREFS_NS, false);
+    _prefs.putUInt("winDelaySec", _winnerDelaySeconds);
+    _prefs.putUInt("winDurationSec", _winnerDurationSeconds);
+    _prefs.end();
+}
+
 void LedManager::savePreferences() {
     _prefs.begin(LED_PREFS_NS, false);
     _prefs.putUShort("count", _ledCount);

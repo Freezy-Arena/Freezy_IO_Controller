@@ -5,18 +5,34 @@
 <meta name='viewport' content='width=device-width,initial-scale=1'>
 <title>Alliance Stop LEDs</title>
 <link rel="stylesheet" href="/static/css/allianceLeds.css">
+<link rel="stylesheet" href="/static/css/led.css">
 <link rel="stylesheet" href="/static/css/common.css">
-<script src="/static/js/allianceLeds.js" defer>
-</script>
 </head>
 <body>
-<main>
+<main class="card">
 {{titleBar}}
 <h1>Alliance Stop LEDs</h1>
 <p>Status indicators use the original stop-controller wiring: GPIO 47, GRB, 750 LEDs, brightness 15, 900 mW power limit.</p>
 <p>LED 0: delivery heartbeat; LED 1: alliance color (flashing red on a latched fault); LED 2: WebSocket activity. Other pixels remain off.</p>
+<div class="message {{messageClass}}" {{messageHidden}}>{{message}}</div>
+<h2>Winner strobe timing</h2>
+<p>The strobe for this alliance follows its associated win coil. Configure the same delay and on-time used by the hub winner lights.</p>
+<form method="POST" action="/led/save">
+	<div class="field">
+		<label for="winnerDelaySeconds">Delay before strobe turns on (seconds)</label>
+		<input id="winnerDelaySeconds" name="winnerDelaySeconds" type="number"
+			min="0" max="{{maxWinnerSeconds}}" step="1" value="{{winnerDelaySeconds}}" required>
+	</div>
+	<div class="field">
+		<label for="winnerDurationSeconds">Strobe on time (seconds)</label>
+		<input id="winnerDurationSeconds" name="winnerDurationSeconds" type="number"
+			min="0" max="{{maxWinnerSeconds}}" step="1" value="{{winnerDurationSeconds}}" required>
+	</div>
+	<p>Use whole seconds from 0 to 3600. An on-time of 0 disables the strobe. Saving reboots the controller.</p>
+	<button type="submit">Save &amp; Reboot</button>
+</form>
 <p>
-<a href='/'>Back to configuration</a>
+<a class="back" href='/'>Back to configuration</a>
 </p>
 </main>
 </body>

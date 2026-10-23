@@ -43,6 +43,7 @@ public:
     uint32_t getWinnerDelaySeconds() const { return _winnerDelaySeconds; }
     uint32_t getWinnerDurationSeconds() const { return _winnerDurationSeconds; }
     void setWinnerTiming(uint32_t delaySeconds, uint32_t durationSeconds);
+    void saveWinnerTimingPreferences();
     // Preserve normal render data while a temporary winner frame is displayed.
     void setWinnerOverride(bool active, CRGB color);
 

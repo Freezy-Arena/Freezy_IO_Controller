@@ -107,7 +107,7 @@ constexpr RoleConfig ROLE_CONFIGS[] = {
       GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_41 },
     { ROLE_BLUE_ALLIANCE, "BLUE_ALLIANCE", 0, 0, 0, 0, 0, 0, 0,
       {0, 0, 0, 0}, {GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC},
-      GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_41 }
+      GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_42 }
 };
 
 // ─── Role manager ─────────────────────────────────────────────────────────────

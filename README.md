@@ -186,7 +186,10 @@ Normal LED commands continue updating in the background, and the latest normal
 output is restored when the display expires, even without another coil message.
 Timing uses nonblocking, rollover-safe elapsed-time checks. The settings persist
 in the `leds` Preferences namespace as `winDelaySec` and `winDurationSec` and apply
-after reboot. FMS Table and alliance stop roles do not use the winner display.
+after reboot. Alliance roles use these same timing settings for their GPIO 41
+winner strobe; each strobe responds only to its associated alliance win coil and
+the timing fields are available from the alliance LED settings page. FMS Table
+does not use the winner display.
 
 ## LED control modes
 

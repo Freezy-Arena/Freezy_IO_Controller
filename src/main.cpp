@@ -67,10 +67,16 @@ void onCoilUpdate(const bool* coils, uint8_t count) {
             winnerDisplay.showRed(role.role == ROLE_RED_HUB) ? CRGB::Red : CRGB::Blue);
     }
 
-    // Match reset → clear all counters
-    if (coilActive(COIL_MATCH_RESET)) {
+    // Match reset → clear counters once on the coil's rising edge.
+    static bool matchResetWasActive = false;
+    if (COIL_MATCH_RESET < count) {
+        const bool matchResetActive = coils[COIL_MATCH_RESET];
+        const bool matchResetRising = matchResetActive && !matchResetWasActive;
+        matchResetWasActive = matchResetActive;
+        if (matchResetRising) {
         WS_PRINTLN("[MAIN] Match reset → clearing counters");
         counters.resetAll();
+        }
     }
 
    // Role-specific relay and LED logic

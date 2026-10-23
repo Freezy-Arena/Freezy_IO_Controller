@@ -43,12 +43,17 @@ InputStatusSnapshot readInputStatus() {
 // Fired by WsManager whenever a plcIoChange arrives
 
 void onCoilUpdate(const bool* coils, uint8_t count) {
-    if (isAlliance) return;
+    const RoleConfig& role = roleManager.getConfig();
+    if (isAlliance) {
+        if (count > COIL_RED_WINS && count > COIL_BLUE_WINS) {
+            winnerDisplay.observe(coils[COIL_RED_WINS], coils[COIL_BLUE_WINS], millis());
+        }
+        return;
+    }
     if (isFmsTable) {
         fmsTable.onCoilUpdate(coils, count);
         return;
     }
-    const RoleConfig& role = roleManager.getConfig();
 
     // Safety check — guard against shorter-than-expected coil arrays
     auto coilActive = [&](uint8_t c) -> bool {
@@ -135,9 +140,13 @@ void setup()
     }
 
     leds.begin(isStopController);
-    if (!isStopController) {
+    if (roleManager.getRole() != ROLE_FMS_TABLE) {
         winnerDisplay.configure(leds.getWinnerDelaySeconds() * 1000U,
                                 leds.getWinnerDurationSeconds() * 1000U);
+    }
+    if (role.winnerPin != GPIO_NUM_NC) {
+        pinMode(role.winnerPin, OUTPUT);
+        digitalWrite(role.winnerPin, LOW);
     }
     ledAnimator.begin();
 
@@ -177,6 +186,11 @@ void loop()
     web.update();               // Handles pending reboot
 
     if (isAlliance) {
+        const RoleConfig& role = roleManager.getConfig();
+        const bool winnerActive = winnerDisplay.update(millis());
+        if (role.winnerPin != GPIO_NUM_NC) {
+            digitalWrite(role.winnerPin, winnerActive ? HIGH : LOW);
+        }
         allianceStops.update(leds, ws.messageCount());
         delay(1);
         return;
@@ -227,6 +241,7 @@ void loop()
             counters.getCount(2),
             counters.getCount(3),
             roleManager.getConfig()
+            
         );
         
     }

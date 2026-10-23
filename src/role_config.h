@@ -56,12 +56,15 @@ struct RoleConfig {
     // Relay GPIO pins
     gpio_num_t  relayMotor;
     gpio_num_t  relayLight;
+
+    // Optional winner output on GPIO 41 for alliance roles.
+    gpio_num_t  winnerPin;
 };
 
 // ─── Role definitions ─────────────────────────────────────────────────────────
 // Update register/coil assignments here each season.
 
-static const RoleConfig ROLE_CONFIGS[] = {
+constexpr RoleConfig ROLE_CONFIGS[] = {
     {
         ROLE_RED_HUB,  "redHub",
         REG_RED_HUB_COUNT_1,
@@ -72,11 +75,12 @@ static const RoleConfig ROLE_CONFIGS[] = {
         COIL_RED_HUB_MOTOR,
         COIL_RED_HUB_LIGHT,
         {INPUT_RED_HUB_SENSOR_1,
-        INPUT_RED_HUB_SENSOR_2, 
+        INPUT_RED_HUB_SENSOR_2,
         INPUT_RED_HUB_SENSOR_3,
         INPUT_RED_HUB_SENSOR_4},
         {GPIO_NUM_15, GPIO_NUM_1, GPIO_NUM_2, GPIO_NUM_3},    // Counter pins
-        GPIO_NUM_34, GPIO_NUM_35                            // Relay pins
+        GPIO_NUM_34, GPIO_NUM_35,                             // Relay pins
+        GPIO_NUM_NC
     },
     {
         ROLE_BLUE_HUB, "blueHub",
@@ -92,18 +96,18 @@ static const RoleConfig ROLE_CONFIGS[] = {
         INPUT_BLUE_HUB_SENSOR_3,
         INPUT_BLUE_HUB_SENSOR_4},
         {GPIO_NUM_15, GPIO_NUM_1, GPIO_NUM_2, GPIO_NUM_3},    // Counter pins
-        GPIO_NUM_34, GPIO_NUM_35                             // Relay pins
-
+        GPIO_NUM_34, GPIO_NUM_35,                             // Relay pins
+        GPIO_NUM_NC
     },
     { ROLE_FMS_TABLE, "FMS_TABLE", 0, 0, 0, 0, 0, 0, 0,
       {0, 0, 0, 0}, {GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC},
-      GPIO_NUM_NC, GPIO_NUM_NC },
+      GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC },
     { ROLE_RED_ALLIANCE, "RED_ALLIANCE", 0, 0, 0, 0, 0, 0, 0,
       {0, 0, 0, 0}, {GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC},
-      GPIO_NUM_NC, GPIO_NUM_NC },
+      GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_41 },
     { ROLE_BLUE_ALLIANCE, "BLUE_ALLIANCE", 0, 0, 0, 0, 0, 0, 0,
       {0, 0, 0, 0}, {GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC},
-      GPIO_NUM_NC, GPIO_NUM_NC }
+      GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_41 }
 };
 
 // ─── Role manager ─────────────────────────────────────────────────────────────

@@ -4,6 +4,9 @@ void LedManager::begin(bool stopController) {
     _outputCount = stopController ? 750 : 300;
     CLEDController* controller = nullptr;
     if (stopController) {
+        // Stop-controller LEDs stay fixed, but winner strobes use the same
+        // saved delay and duration as hub winner lights.
+        loadWinnerTimingPreferences();
         _ledCount = 750;
         _colorOrder = LED_ORDER_GRB;
         _brightness = 15;
@@ -178,6 +181,15 @@ void LedManager::loadPreferences() {
     _colorOrder = savedOrder <= LED_ORDER_BGR
         ? static_cast<LedColorOrder>(savedOrder)
         : LED_ORDER_BRG;
+    _winnerDelaySeconds = _prefs.getUInt("winDelaySec", 0);
+    _winnerDurationSeconds = _prefs.getUInt("winDurationSec", 10);
+    if (_winnerDelaySeconds > MaxWinnerSeconds) _winnerDelaySeconds = 0;
+    if (_winnerDurationSeconds > MaxWinnerSeconds) _winnerDurationSeconds = 10;
+    _prefs.end();
+}
+
+void LedManager::loadWinnerTimingPreferences() {
+    _prefs.begin(LED_PREFS_NS, true);
     _winnerDelaySeconds = _prefs.getUInt("winDelaySec", 0);
     _winnerDurationSeconds = _prefs.getUInt("winDurationSec", 10);
     if (_winnerDelaySeconds > MaxWinnerSeconds) _winnerDelaySeconds = 0;

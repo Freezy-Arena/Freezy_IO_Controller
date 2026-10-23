@@ -69,4 +69,5 @@ private:
     CRGB _winnerColor = CRGB::Black;
     uint32_t _winnerDelaySeconds = 0;
     uint32_t _winnerDurationSeconds = 10;
+    void loadWinnerTimingPreferences();
 };

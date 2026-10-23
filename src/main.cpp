@@ -189,7 +189,9 @@ void loop()
         const RoleConfig& role = roleManager.getConfig();
         const bool winnerActive = winnerDisplay.update(millis());
         if (role.winnerPin != GPIO_NUM_NC) {
-            digitalWrite(role.winnerPin, winnerActive ? HIGH : LOW);
+            const bool redAlliance = role.role == ROLE_RED_ALLIANCE;
+            digitalWrite(role.winnerPin,
+                winnerActive && winnerDisplay.activeForAlliance(redAlliance) ? HIGH : LOW);
         }
         allianceStops.update(leds, ws.messageCount());
         delay(1);

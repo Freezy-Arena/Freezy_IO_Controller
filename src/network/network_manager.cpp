@@ -62,13 +62,27 @@ void EthManager::savePreferences()
 
 void EthManager::begin(bool stopController) {
     loadPreferences();
+    _stopController = stopController;
 
     Network.onEvent(_onEvent);
+    _start();
+}
 
-    ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR,
-              ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST,
-              stopController ? SPI2_HOST : ETH_PHY_SPI_HOST,
-              ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+void EthManager::restart(const char* reason) {
+    Serial.printf("[NET] Restarting Ethernet: %s\n", reason);
+    _connected = false;
+    ETH.end();
+    _start();
+}
+
+void EthManager::_start() {
+    bool stopController = _stopController;
+    if (!ETH.begin(ETH_PHY_TYPE, ETH_PHY_ADDR,
+                   ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST,
+                   stopController ? SPI2_HOST : ETH_PHY_SPI_HOST,
+                   ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI)) {
+        Serial.println("[NET] Ethernet failed to start");
+    }
 
     if (!useDHCP) {
         IPAddress localIP, localGW, subnet, dns1, dns2;

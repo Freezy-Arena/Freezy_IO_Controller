@@ -30,6 +30,9 @@ class EthManager
 public:
     void begin(bool stopController = false);
     void update(); // Call from loop()
+    // Stops and starts the Ethernet driver again, which hard-resets the W5500
+    // through ETH_PHY_RST. Used when receiving has stopped with the link up.
+    void restart(const char* reason);
 
     bool isConnected();
     IPAddress localIP();
@@ -48,6 +51,8 @@ public:
 private:
     static void _onEvent(arduino_event_id_t event, arduino_event_info_t info);
     static std::atomic<bool> _connected;
+    bool _stopController = false;
+    void _start();
 
     Preferences _prefs;
 };

@@ -14,6 +14,11 @@
 // Reg 2 = sum of Reg 7,8,9,10  (reserved for future channels)
 
 #define WS_RECONNECT_DELAY_MS   3000
+// Websocket ping every 2 s; drop the connection after 2 pongs missing for
+// 1.5 s each, so a dead connection is noticed in about 5 s, not minutes.
+#define WS_HEARTBEAT_INTERVAL_MS 2000
+#define WS_HEARTBEAT_TIMEOUT_MS  1500
+#define WS_HEARTBEAT_MISSES      2
 #define WS_MAX_MESSAGE_SIZE     (15 * 1024)
 #define WS_PREFS_NS             "websocket"
 extern bool _debugSerial;
@@ -46,6 +51,8 @@ public:
         _stopChannelCount = isAllianceRole(role) ? 6 : 1;
     }
     uint32_t messageCount() const { return _messages; }
+    // millis() when anything last arrived from the arena, 0 if nothing yet.
+    uint32_t lastReceiveMs() const { return _lastReceive; }
     // Main-loop only. One untagged ACK at a time, restricted to this role's inputs.
     // Stop writes bypass the optional hub telemetry flag.
     bool sendStopInput(bool state, uint8_t channel = INPUT_FIELD_ESTOP);
@@ -89,6 +96,7 @@ private:
     uint8_t _firstStopChannel = INPUT_FIELD_ESTOP, _stopChannelCount = 1;
     InputAck _inputAck;
     uint32_t _messages = 0, _arenaMessages = 0, _plcMessages = 0, _parseErrors = 0;
+    uint32_t _lastReceive = 0;
     uint32_t _disconnects = 0, _wsGap = 0, _wsWork = 0, _lastUpdate = 0, _lastReport = 0;
 
     void _onEvent(WStype_t type, uint8_t* payload, size_t length);

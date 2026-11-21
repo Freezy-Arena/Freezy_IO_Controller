@@ -69,6 +69,7 @@ void WsManager::begin(const String& host, uint16_t port, const String& path) {
         _onEvent(t, p, l);
     });
     _ws.setReconnectInterval(WS_RECONNECT_DELAY_MS);
+    _ws.enableHeartbeat(WS_HEARTBEAT_INTERVAL_MS, WS_HEARTBEAT_TIMEOUT_MS, WS_HEARTBEAT_MISSES);
 
     Serial.printf("[WS] Connecting to ws://%s:%d%s\n", arenaHost.c_str(), arenaPort, path.c_str());
 }
@@ -342,6 +343,18 @@ void WsManager::_handleMessage(const String& raw) {
 // ─── WebSocket event handler ──────────────────────────────────────────────────
 
 void WsManager::_onEvent(WStype_t type, uint8_t* payload, size_t length) {
+    switch (type) {
+        case WStype_CONNECTED: case WStype_TEXT: case WStype_BIN:
+        case WStype_FRAGMENT_TEXT_START: case WStype_FRAGMENT_BIN_START:
+        case WStype_FRAGMENT: case WStype_FRAGMENT_FIN:
+        case WStype_PING: case WStype_PONG:
+            _lastReceive = millis();
+            if (_lastReceive == 0) _lastReceive = 1; // 0 means "nothing yet".
+            break;
+        default:
+            break;
+    }
+
     switch (type) {
         case WStype_CONNECTED:
             _connected = true;

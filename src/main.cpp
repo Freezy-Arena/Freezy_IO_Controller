@@ -13,6 +13,8 @@
 #include "config/legacy_fms.h"
 #include "fms_table/fms_table.h"
 #include "alliance/alliance_stops.h"
+#include "network/link_watchdog.h"
+#include <esp_system.h>
 
 LedManager leds;
 WinnerDisplay winnerDisplay;
@@ -116,11 +118,32 @@ void onSetLedMode(int redMode, int blueMode) {
                         static_cast<LedMode>(blueMode));
 }
 
+static const char* resetReasonName(esp_reset_reason_t reason)
+{
+    switch (reason) {
+    case ESP_RST_POWERON:   return "power on";
+    case ESP_RST_EXT:       return "external reset pin";
+    case ESP_RST_SW:        return "software restart";
+    case ESP_RST_PANIC:     return "panic";
+    case ESP_RST_INT_WDT:   return "interrupt watchdog";
+    case ESP_RST_TASK_WDT:  return "task watchdog";
+    case ESP_RST_WDT:       return "other watchdog";
+    case ESP_RST_DEEPSLEEP: return "deep sleep wake";
+    case ESP_RST_BROWNOUT:  return "brownout";
+    case ESP_RST_SDIO:      return "SDIO";
+    default:                return "unknown";
+    }
+}
+
+static ethwatch::Watchdog linkWatchdog;
+
 void setup()
 {
     Serial.begin(115200);
     delay(500);
     Serial.println("[BOOT] Starting...");
+    esp_reset_reason_t resetReason = esp_reset_reason();
+    Serial.printf("[BOOT] Reset reason: %s (%d)\n", resetReasonName(resetReason), (int)resetReason);
 
     migrateLegacyFmsSettings();
     roleManager.begin();            // Load role before anything that needs it
@@ -187,6 +210,11 @@ void loop()
     }
     ws.setLedModeEnabled(!isStopController && network.ledControlMode == LED_CONTROL_WEBSOCKET);
     ws.update();                    // Must be called every loop
+    if (linkWatchdog.due(network.isConnected(), ws.lastReceiveMs(), millis())) {
+        network.restart("nothing received from the arena for 10 s with the link up");
+        linkWatchdog.restarted(millis());
+        Serial.printf("[NET] Ethernet restarts since boot: %lu\n", (unsigned long)linkWatchdog.restarts());
+    }
     if (isFmsTable) fmsTable.serviceStops(ws);
     if (isAlliance) allianceStops.serviceStops(ws, network.isConnected());
     web.update();               // Handles pending reboot
